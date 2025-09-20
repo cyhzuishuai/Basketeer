@@ -400,7 +400,7 @@ export function VaultDetail({ vault }: VaultDetailProps) {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <p className="text-muted-foreground mb-4">You haven't deposited into this vault yet</p>
+                      <p className="text-muted-foreground mb-4">You haven&apos;t deposited into this vault yet</p>
                       <Dialog open={isDepositDialogOpen} onOpenChange={setIsDepositDialogOpen}>
                         <DialogTrigger asChild>
                           <Button>Make Your First Deposit</Button>

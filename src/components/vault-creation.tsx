@@ -25,7 +25,6 @@ import {
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAccount, useWriteContract } from "wagmi"
-import { handleDeploy } from "@/contracts"
 import deployerAbi from "../abi/deployer.json";
 
 interface TokenSelection {
@@ -421,7 +420,7 @@ export function VaultCreation() {
                         rows={4}
                       />
                       <p className="text-sm text-muted-foreground">
-                        A brief description of your vault's investment strategy.
+                        A brief description of your vault&apos;s investment strategy.
                       </p>
                     </div>
 
