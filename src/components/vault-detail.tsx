@@ -6,6 +6,17 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import {
   ArrowLeft,
   Download,
@@ -15,6 +26,8 @@ import {
   DollarSign,
   BarChart3,
   Zap,
+  Plus,
+  Minus,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -79,6 +92,12 @@ const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3
 
 export function VaultDetail({ vault }: VaultDetailProps) {
   const [activeTab, setActiveTab] = useState("overview")
+  const [depositAmount, setDepositAmount] = useState("")
+  const [claimAmount, setClaimAmount] = useState("")
+  const [isDepositDialogOpen, setIsDepositDialogOpen] = useState(false)
+  const [isClaimDialogOpen, setIsClaimDialogOpen] = useState(false)
+  const [userDeposit, setUserDeposit] = useState("0") // 用户已存入金额
+  const [userRewards, setUserRewards] = useState("0") // 用户可领取奖励
   const pathname = usePathname()
 
   const pieData = vault.portfolio.map((item, index) => ({
@@ -86,6 +105,51 @@ export function VaultDetail({ vault }: VaultDetailProps) {
     value: Number.parseFloat(item.allocation.replace("%", "")),
     color: COLORS[index % COLORS.length],
   }))
+
+  const handleDeposit = () => {
+    if (!depositAmount || parseFloat(depositAmount) <= 0) {
+      alert("请输入有效的存入金额")
+      return
+    }
+    
+    // 这里添加实际的存入逻辑
+    console.log(`存入 ${depositAmount} ${vault.denominationAsset}`)
+    
+    // 更新用户存入金额
+    setUserDeposit((prev) => (parseFloat(prev) + parseFloat(depositAmount)).toString())
+    setDepositAmount("")
+    setIsDepositDialogOpen(false)
+    
+  }
+
+  const handleClaim = () => {
+    if (!claimAmount || parseFloat(claimAmount) <= 0) {
+      alert("请输入有效的提取金额")
+      return
+    }
+    
+    if (parseFloat(claimAmount) > parseFloat(userRewards)) {
+      alert("提取金额不能超过可领取奖励")
+      return
+    }
+    
+    // 这里添加实际的提取逻辑
+    console.log(`提取 ${claimAmount} ${vault.denominationAsset}`)
+    
+    // 更新用户奖励
+    setUserRewards((prev) => (parseFloat(prev) - parseFloat(claimAmount)).toString())
+    setClaimAmount("")
+    setIsClaimDialogOpen(false)
+  }
+
+  const handleMaxDeposit = () => {
+    // 这里可以设置最大存入金额，比如用户钱包余额
+    setDepositAmount("1000") // 示例值
+  }
+
+  const handleMaxClaim = () => {
+    setClaimAmount(userRewards)
+  }
 
   return (
     <div className="container mx-auto px-6 py-8">
@@ -122,10 +186,60 @@ export function VaultDetail({ vault }: VaultDetailProps) {
                   </div>
                 </div>
               </div>
-              <Button size="lg" className="gap-2">
-                <Download className="w-4 h-4" />
-                Deposit
-              </Button>
+              
+              {/* Deposit Button with Dialog */}
+              <Dialog open={isDepositDialogOpen} onOpenChange={setIsDepositDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="lg" className="gap-2">
+                    <Download className="w-4 h-4" />
+                    Deposit
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>存入资金</DialogTitle>
+                    <DialogDescription>
+                      请输入要存入 {vault.denominationAsset} 的金额
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="deposit-amount" className="text-right">
+                        金额
+                      </Label>
+                      <Input
+                        id="deposit-amount"
+                        type="number"
+                        placeholder="0.00"
+                        value={depositAmount}
+                        onChange={(e) => setDepositAmount(e.target.value)}
+                        className="col-span-2"
+                        step="0.01"
+                        min="0"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleMaxDeposit}
+                        className="col-span-1"
+                      >
+                        Max
+                      </Button>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      当前存入: {userDeposit} {vault.denominationAsset}
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsDepositDialogOpen(false)}>
+                      取消
+                    </Button>
+                    <Button onClick={handleDeposit}>
+                      确认存入
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
 
             <div className="flex flex-wrap gap-2 mb-6">
@@ -223,10 +337,118 @@ export function VaultDetail({ vault }: VaultDetailProps) {
                   <CardTitle>My Deposit</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-4">You haven't deposited into this vault yet</p>
-                    <Button>Make Your First Deposit</Button>
-                  </div>
+                  {parseFloat(userDeposit) > 0 ? (
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold">{userDeposit} {vault.denominationAsset}</p>
+                        <p className="text-sm text-muted-foreground">已存入金额</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Dialog open={isDepositDialogOpen} onOpenChange={setIsDepositDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button className="flex-1">
+                              <Plus className="w-4 h-4 mr-2" />
+                              继续存入
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                              <DialogTitle>存入更多资金</DialogTitle>
+                              <DialogDescription>
+                                请输入要存入 {vault.denominationAsset} 的金额
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="deposit-amount-2" className="text-right">
+                                  金额
+                                </Label>
+                                <Input
+                                  id="deposit-amount-2"
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={depositAmount}
+                                  onChange={(e) => setDepositAmount(e.target.value)}
+                                  className="col-span-2"
+                                  step="0.01"
+                                  min="0"
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleMaxDeposit}
+                                  className="col-span-1"
+                                >
+                                  Max
+                                </Button>
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                当前存入: {userDeposit} {vault.denominationAsset}
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button variant="outline" onClick={() => setIsDepositDialogOpen(false)}>
+                                取消
+                              </Button>
+                              <Button onClick={handleDeposit}>
+                                确认存入
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground mb-4">You haven't deposited into this vault yet</p>
+                      <Dialog open={isDepositDialogOpen} onOpenChange={setIsDepositDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button>Make Your First Deposit</Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                          <DialogHeader>
+                            <DialogTitle>存入资金</DialogTitle>
+                            <DialogDescription>
+                              请输入要存入 {vault.denominationAsset} 的金额
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="deposit-amount-3" className="text-right">
+                                金额
+                              </Label>
+                              <Input
+                                id="deposit-amount-3"
+                                type="number"
+                                placeholder="0.00"
+                                value={depositAmount}
+                                onChange={(e) => setDepositAmount(e.target.value)}
+                                className="col-span-2"
+                                step="0.01"
+                                min="0"
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleMaxDeposit}
+                                className="col-span-1"
+                              >
+                                Max
+                              </Button>
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsDepositDialogOpen(false)}>
+                              取消
+                            </Button>
+                            <Button onClick={handleDeposit}>
+                              确认存入
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -235,12 +457,74 @@ export function VaultDetail({ vault }: VaultDetailProps) {
                   <CardTitle>Rewards</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-4">No rewards available</p>
-                    <Button variant="outline" disabled>
-                      Claim Rewards
-                    </Button>
-                  </div>
+                  {parseFloat(userRewards) > 0 ? (
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-chart-3">{userRewards} {vault.denominationAsset}</p>
+                        <p className="text-sm text-muted-foreground">可领取奖励</p>
+                      </div>
+                      <Dialog open={isClaimDialogOpen} onOpenChange={setIsClaimDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button className="w-full">
+                            <Download className="w-4 h-4 mr-2" />
+                            领取奖励
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                          <DialogHeader>
+                            <DialogTitle>领取奖励</DialogTitle>
+                            <DialogDescription>
+                              请输入要领取的 {vault.denominationAsset} 金额
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="claim-amount" className="text-right">
+                                金额
+                              </Label>
+                              <Input
+                                id="claim-amount"
+                                type="number"
+                                placeholder="0.00"
+                                value={claimAmount}
+                                onChange={(e) => setClaimAmount(e.target.value)}
+                                className="col-span-2"
+                                step="0.01"
+                                min="0"
+                                max={userRewards}
+                              />
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleMaxClaim}
+                                className="col-span-1"
+                              >
+                                Max
+                              </Button>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              可领取: {userRewards} {vault.denominationAsset}
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsClaimDialogOpen(false)}>
+                              取消
+                            </Button>
+                            <Button onClick={handleClaim}>
+                              确认领取
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground mb-4">No rewards available</p>
+                      <Button variant="outline" disabled>
+                        Claim Rewards
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
