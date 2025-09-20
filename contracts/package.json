@@ -1,0 +1,39 @@
+{
+  "name": "lendora-token",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy:sepolia": "npx hardhat run scripts/deploy-and-init-proxy.ts --network sepolia",
+    "deploy:local": "npx hardhat run scripts/deploy-and-init-proxy.ts --network hardhat",
+    "deploy:factory:sepolia": "npx hardhat run scripts/deploy-with-factory.ts --network sepolia",
+    "deploy:factory:local": "npx hardhat run scripts/deploy-with-factory.ts --network hardhat",
+    "compile": "npx hardhat compile",
+    "typechain": "npx hardhat typechain"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cyhzuishuai/Lendora-Token.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cyhzuishuai/Lendora-Token/issues"
+  },
+  "homepage": "https://github.com/cyhzuishuai/Lendora-Token#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "@typescript-eslint/parser": "^8.40.0",
+    "eslint": "^9.34.0",
+    "hardhat": "^2.26.3",
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.9.3",
+    "@openzeppelin/contracts-upgradeable": "^4.9.3",
+    "dotenv": "^17.2.0"
+  }
+}
