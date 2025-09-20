@@ -24,10 +24,13 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useAccount } from "wagmi"
+import { useAccount, useWriteContract } from "wagmi"
+import { handleDeploy } from "@/contracts"
+import deployerAbi from "../abi/deployer.json";
 
 interface TokenSelection {
   tokenType: string
+  tokenAddress:string
   poolId: string
   amount: string
   allocation: number
@@ -84,8 +87,25 @@ export function VaultCreation() {
     poolId: "",
     category: "",
   })
+  const [isDeploying, setIsDeploying] = useState(false)
   const pathname = usePathname()
   const { isConnected } = useAccount()
+
+  // 使用 useWriteContract hook
+  const { writeContract, writeContractAsync, isPending, error } = useWriteContract({
+    mutation: {
+      onSuccess: (data) => {
+        console.log('Vault deployment successful:', data)
+        setIsDeploying(false)
+        // 可以添加成功提示或跳转逻辑
+      },
+      onError: (error) => {
+        console.error('Vault deployment failed:', error)
+        setIsDeploying(false)
+        // 可以添加错误提示
+      }
+    }
+  })
 
   const [formData, setFormData] = useState<VaultFormData>({
     name: "",
@@ -108,7 +128,8 @@ export function VaultCreation() {
 
   const addToken = (token: TokenData) => {
     const newToken: TokenSelection = {
-      tokenType: token.tokenType,
+      tokenType: token.tokenType,   
+      tokenAddress:token.tokenaddress,
       poolId: token.poolId,
       amount: "0",
       allocation: 0,
@@ -191,6 +212,68 @@ export function VaultCreation() {
         return formData.acceptTerms
       default:
         return false
+    }
+  }
+
+  // 新增：处理创建金库的函数
+  const handleCreateVault = async () => {
+    if (!isConnected) {
+      alert('Please connect your wallet first')
+      return
+    }
+
+    if (!canProceed()) {
+      alert('Please complete all required fields')
+      return
+    }
+
+    try {
+      setIsDeploying(true)
+      
+      // 准备合约调用参数
+      const USDT = "0x8D13bbDbCea96375c25e5eDb679613AA480d5E27"; // 作为USD基准
+    
+      // === 策略代币地址 ===
+      const strategyTokens = [
+          "0xC5ae99a1B0b8d307F5D33343b442ab21Ca9dD475", // WBTC
+          "0x94bbb7DaA0B9935319B76df08E0954F64BF619d3", // WETH  
+          "0x4175df4399Ac18A9E60148b21575ceb5eb5edc35", // SOL
+          "0xf04b6BcBBcCc6Cd981D53830EF1dFeA783Ba3feB"  // BNB
+      ];
+      
+      // === 策略权重 (BTC:50%, ETH:25%, SOL:15%, BNB:10%) ===
+      const strategyWeights = [5000, 2500, 1500, 1000]; // 总和 = 10000
+      
+      // === 对应的 USDT 交易对地址 ===
+      const strategyPairs = [
+          "0xa5C2e8df3b5Ca0C296C441b3011B43910B94B7e1", // USDT/WBTC Pool
+          "0xfe7dE0a08B895B36C07f5c3A0B49564A29A341EB", // USDT/WETH Pool
+          "0x900c165d4cB2C02aF341B2cD48f06F835EBcd522", // USDT/SOL Pool
+          "0x4C1CC54a4fD330d0F3b749bfab28aF0bd5Adc7F9"  // USDT/BNB Pool
+      ];
+      
+      const strategyName = "Monad BTC-ETH-SOL-BNB Portfolio";
+      const strategySymbol = "mBESB";
+  
+
+      // 调用合约部署函数
+      await writeContractAsync({
+        address: "0x60ee57163bc08A83aB381D79819927f82F8dD31a",
+        abi: deployerAbi,
+        functionName: 'deployStrategy',
+        args: [
+          strategyTokens,
+          strategyWeights,
+          strategyName,
+          strategySymbol,
+          USDT,
+          strategyPairs,
+        ],
+      })
+
+    } catch (error) {
+      console.error('Error creating vault:', error)
+      setIsDeploying(false)
     }
   }
 
@@ -602,10 +685,24 @@ export function VaultCreation() {
                     Previous
                   </Button>
 
+                  {/* 修改创建按钮 */}
                   {currentStep === steps.length - 1 ? (
-                    <Button disabled={!canProceed() || !isConnected} className="gap-2">
-                      Create Vault
-                      <Check className="w-4 h-4" />
+                    <Button 
+                      onClick={handleCreateVault}
+                      disabled={!canProceed() || !isConnected || isDeploying || isPending}
+                      className="gap-2"
+                    >
+                      {isDeploying || isPending ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Creating Vault...
+                        </>
+                      ) : (
+                        <>
+                          Create Vault
+                          <Check className="w-4 h-4" />
+                        </>
+                      )}
                     </Button>
                   ) : (
                     <Button onClick={nextStep} disabled={!canProceed()}>
@@ -619,6 +716,13 @@ export function VaultCreation() {
           </div>
         </div>
       </div>
+
+      {/* 添加错误显示 */}
+      {error && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-800">Error: {error.message}</p>
+        </div>
+      )}
     </div>
   )
 }
