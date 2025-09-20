@@ -66,9 +66,9 @@ const mockVaults = [
 ]
 
 const totalStats = {
-  totalVaults: 1648,
-  totalAUM: "$177,423,925.51",
-  totalDeposits: 8261,
+  totalVaults: 5,
+  totalAUM: "$256123215",
+  totalDeposits: 3,
 }
 
 export function VaultDiscovery() {
